@@ -1,0 +1,116 @@
+# Tasks
+
+- [ ] Project Setup & Infrastructure [/]
+    - [ ] Initialize Next.js 14 project with TypeScript and Tailwind
+    - [ ] Setup Firebase Client and Admin SDKs
+    - [ ] Configure environment variables (`.env.local.example`)
+    - [ ] Initialize `pino` logger and rate limiter
+- [ ] Core Types & Shared Logic [ ]
+    - [ ] Implement domain types in `/types` (agent, project, scoring, ai)
+    - [ ] Implement Zod validators in `/lib/validators.ts`
+    - [ ] Implement `checkRateLimit(userId?, ip?)` in `/server/rate-limit.ts` — per-user primary (20/min, 200/day), per-IP fallback; **in-memory only for early stage — set `UPSTASH_REDIS_REST_URL` before public launch** (Vercel instances don't share memory)
+    - [ ] Implement cost tracking and usage recording logic (`/lib/cost-tracker.ts`)
+    - [ ] Implement diff pure function (`/lib/diff/index.ts`)
+    - [ ] Implement scoring pure function (`/lib/scoring/index.ts`)
+    - [ ] Implement i18n translations object (`/lib/i18n.ts`)
+    - [ ] Implement Zustand store in `/lib/store.ts`
+- [ ] AI Service Layer [ ]
+    - [ ] Implement prompt generators in `/lib/ai/prompts.ts` (interview, generate, refine, scoring)
+    - [ ] Implement provider routing and FALLBACK_CHAINS in `/lib/ai/provider.ts`
+    - [ ] Implement `AIService` class with fallback logic in `/server/ai-service.ts`
+- [ ] Backend API Development [ ]
+    - [ ] Implement auth middleware (`/middleware.ts`) — **Edge runtime: token presence check only (cookie/header), NO Admin SDK import**; full token verification in API routes (Node runtime)
+    - [ ] Implement `/api/ai/interview/route.ts`
+    - [ ] Implement `/api/ai/generate/route.ts`
+    - [ ] Implement `/api/ai/refine/route.ts`
+    - [ ] Implement `/api/ai/scoring/route.ts`
+    - [ ] Implement `/api/projects/route.ts` (GET list, POST create)
+    - [ ] Implement `/api/projects/[id]/route.ts` (GET, PUT, DELETE)
+    - [ ] Implement `/api/usage/route.ts` (GET — AI cost summary; **must use `adminDb`, not client SDK** — ai_usage is deny-all in Security Rules)
+    - [ ] Implement `/api/health/route.ts` (GET — public, no auth, **read-only Firestore check** — no write ping)
+- [ ] Frontend Development - Core [ ]
+    - [ ] Implement `apiFetch` wrapper with Firebase ID Token (`/lib/api-client.ts`)
+    - [ ] Implement application hooks:
+        - [ ] `hooks/useInterview.ts` — interview + generate + scoring flow; **`Promise.allSettled` required**; scoring failure → fallback to `scoreProject()` pure function, never block agent grid
+        - [ ] `hooks/useRefine.ts` — refine cycle + version history
+        - [ ] `hooks/useFirestoreProject.ts` — save, load, delete, fork via API
+        - [ ] `hooks/useZipExport.ts` — jszip bundles with agentspark.json manifest
+        - [ ] `hooks/useImport.ts` — parse .json / .zip, preview, confirm
+- [ ] Frontend Development - Components [ ]
+    - [ ] Build UI base components:
+        - [ ] `components/UI/Button.tsx`
+        - [ ] `components/UI/Modal.tsx`
+        - [ ] `components/UI/Notif.tsx`
+        - [ ] `components/UI/TracePanel.tsx`
+        - [ ] `components/UI/PWAManager.tsx`
+    - [ ] Build Chat components:
+        - [ ] `components/Chat/ChatMessages.tsx`
+        - [ ] `components/Chat/OptionButton.tsx` (A/B/C/D + IMPACT notes parsing)
+        - [ ] `components/Chat/TypingIndicator.tsx`
+    - [ ] Build Agent components:
+        - [ ] `components/Agents/AgentCard.tsx`
+        - [ ] `components/Agents/AgentModal.tsx` (Agent / Skill tabs + download)
+        - [ ] `components/Agents/AgentGraph.tsx` (Canvas 2D, deterministic arc layout — **NO physics/force simulation in v1**)
+    - [ ] Build Interview components:
+        - [ ] `components/Interview/TopicSelector.tsx` (templates, level picker, model select)
+        - [ ] `components/Interview/InterviewLayout.tsx` (chat + collapsible sidebar)
+    - [ ] Build Results components:
+        - [ ] `components/Results/ResultsActions.tsx`
+        - [ ] `components/Results/ScoringPanel.tsx`
+        - [ ] `components/Results/VersionHistory.tsx`
+    - [ ] Build Refine components:
+        - [ ] `components/Refine/RefinePanel.tsx`
+        - [ ] `components/Refine/RefineDiff.tsx`
+    - [ ] Build Modals:
+        - [ ] `components/Modals/ShareModal.tsx` (public link + AES-256-GCM password — **watch URL length limit ~1800 chars, wrong-password DOMException handling, correct gzip order**)
+        - [ ] `components/Modals/ImportModal.tsx` (drag & drop .json / .zip)
+        - [ ] `components/Modals/MarkdownPreviewModal.tsx` (file list + react-markdown)
+        - [ ] `components/Modals/SystemPromptsModal.tsx` (Interview / Generate / Refine tabs)
+        - [ ] `components/Modals/FrameworkExportModal.tsx` (CrewAI / LangGraph / AutoGen / Swarm)
+- [ ] Frontend Development - Pages [ ]
+    - [ ] `app/layout.tsx` (dark mode, fonts, Notif, PWAManager)
+    - [ ] `app/page.tsx` (redirect → /dashboard or /login)
+    - [ ] `app/(auth)/login/page.tsx`
+    - [ ] `app/(auth)/register/page.tsx`
+    - [ ] `app/dashboard/page.tsx` (project list, fork, delete)
+    - [ ] `app/project/[id]/page.tsx` (topic → interview → results state machine)
+    - [ ] `app/usage/page.tsx` (AI cost dashboard)
+    - [ ] `app/offline/page.tsx`
+    - [ ] `app/project/[id]/loading.tsx`
+    - [ ] `app/project/[id]/error.tsx`
+    - [ ] `app/loading.tsx`
+    - [ ] `app/not-found.tsx`
+- [ ] AI Framework Export Generators [ ]
+    - [ ] Implement pure function generators in `/lib/frameworks/index.ts`:
+        - [ ] CrewAI Python generator
+        - [ ] LangGraph Python generator
+        - [ ] AutoGen Python generator
+        - [ ] Swarm Python generator
+- [ ] Production & Reliability [ ]
+    - [ ] Configure Vitest (`vitest.config.ts`, `tests/setup.ts`) — **coverage thresholds by layer**: lib+server ≥80%, hooks ≥60%, components ≥40% (UI tests kept light)
+    - [ ] Unit tests — `tests/lib/diff.test.ts`
+    - [ ] Unit tests — `tests/lib/scoring.test.ts`
+    - [ ] Unit tests — `tests/lib/cost-tracker.test.ts`
+    - [ ] Unit tests — `tests/lib/prompts.test.ts`
+    - [ ] Unit tests — `tests/server/rate-limit.test.ts`
+    - [ ] Unit tests — `tests/server/ai-service.test.ts`
+    - [ ] Component test — `tests/components/OptionButton.test.tsx`
+    - [ ] Hook test — `tests/hooks/useInterview.test.ts`
+    - [ ] Implement PWA: `/public/sw.js`, `/public/manifest.json`, `/public/offline.html`
+    - [ ] Implement developer seed script (`/scripts/seed.ts`)
+- [ ] DevOps & Deployment [ ]
+    - [ ] `vercel.json` (maxDuration 60s for AI routes, security headers)
+    - [ ] `firestore.rules` (RLS — owner-only for projects, deny-all for ai_usage)
+    - [ ] `firestore.indexes.json` (compound index: userId + updatedAt, userId + timestamp)
+    - [ ] `.firebaserc` and `firebase.json`
+    - [ ] `.github/workflows/ci.yml` (typecheck → lint → test → build)
+    - [ ] `.github/workflows/deploy.yml` (deploy Firestore rules on push to main)
+- [ ] Verification & Final Polish [ ]
+    - [ ] Run `npm run typecheck` — zero errors
+    - [ ] Run `npm run lint` — zero warnings
+    - [ ] Run `npm run test:coverage` — >70% coverage for `lib/**` and `server/**`
+    - [ ] Run `npm run build` — clean build
+    - [ ] Verify no `NEXT_PUBLIC_*` prefix on AI or Admin keys
+    - [ ] Verify no `firebase-admin` import in `components/` or client-side `app/` files
+    - [ ] Verify `/api/health` returns `{ status: "ok" }` without auth token
+    - [ ] Perform end-to-end walkthrough: login → new project → interview → generate → refine → download ZIP → re-import

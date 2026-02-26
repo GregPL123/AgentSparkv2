@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Projects: Owner-only access
+    match /projects/{projectId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // AI Usage: Deny client-side reads, allow system recording (via Admin SDK)
+    match /ai_usage/{usageId} {
+      allow read, list: if false; 
+      allow write: if false;
+    }
+
+    // Health checks
+    match /_health/{docId} {
+      allow read, write: if false; // System only
+    }
+  }
+}
